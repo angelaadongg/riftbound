@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Riftbound Collection Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #0bc4e3;
+    --gold-light: #5dd8f0;
+    --gold-dim: #0a7a8f;
+    --ink: #020b14;
+    --parchment: #f5f0e8;
+    --parchment-dark: #e8e0cc;
+    --surface: #040d18;
+    --surface-2: #071525;
+    --surface-3: #0c1f35;
+    --border: rgba(11,196,227,0.2);
+    --border-bright: rgba(11,196,227,0.5);
+    --text-primary: #e8f4f8;
+    --text-secondary: rgba(200,230,240,0.6);
+    --text-dim: rgba(200,230,240,0.3);
+    --red-card: #c0392b;
+    --orange-card: #d35400;
+    --yellow-card: #d4ac0d;
+    --green-card: #1e8449;
+    --blue-card: #1a5276;
+    --purple-card: #6c3483;
+    --colorless-card: #5d6d7e;
+    --radius: 8px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Crimson Pro', Georgia, serif;
+    background: var(--surface);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(11,196,227,0.07) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(11,196,227,0.012) 40px, rgba(11,196,227,0.012) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(11,196,227,0.012) 40px, rgba(11,196,227,0.012) 41px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-rune {
+    width: 42px; height: 42px;
+    border: 1.5px solid var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+  .logo h1 {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+  }
+  .logo span {
+    font-family: 'Crimson Pro', serif;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+  }
+  .tab-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    padding: 8px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: var(--surface-3);
+    color: var(--gold-light);
+    border: 1px solid var(--border-bright);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text-primary); }
+
+
+  .settings-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.18s;
+    margin-left: 10px;
+  }
+  .settings-btn:hover {
+    border-color: var(--border-bright);
+    color: var(--gold-light);
+    background: var(--surface-3);
+  }
+
+
+  .deck-method-btn {
+    flex: 1;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+  }
+  .deck-method-btn.active {
+    background: var(--surface-2);
+    color: var(--gold-light);
+    border: 1px solid var(--border-bright);
+  }
+  .deck-method-btn:hover:not(.active) { color: var(--text-primary); }
+
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  /* ── SECTION HEADINGS ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .section-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+  }
+  .section-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    padding: 9px 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.18s;
+    border: 1px solid var(--border-bright);
+    background: transparent;
+    color: var(--gold-light);
+  }
+  .btn:hover { background: rgba(11,196,227,0.12); }
+  .btn-primary {
+    background: var(--gold);
+    color: var(--ink);
+    border-color: var(--gold);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--gold-light); border-color: var(--gold-light); }
+  .btn-sm { padding: 6px 12px; font-size: 11px; }
+  .btn-ghost { border-color: var(--border); color: var(--text-secondary); }
+  .btn-ghost:hover { color: var(--text-primary); border-color: var(--border-bright); }
+  .btn-danger { border-color: rgba(192,57,43,0.5); color: #e74c3c; }
+  .btn-danger:hover { background: rgba(192,57,43,0.1); }
+
+  /* ── DECK GRID (Tab 1) ── */
+  .deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 32px 24px;
+  }
+
+  .deck-stack {
+    cursor: pointer;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 5/7;
+  }
+  .deck-stack:hover .stack-card-back-2 { transform: rotate(-6deg) translateY(-8px); }
+  .deck-stack:hover .stack-card-back-1 { transform: rotate(-3deg) translateY(-4px); }
+  .deck-stack:hover .stack-card-front { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 24px rgba(11,196,227,0.2); }
+
+  .stack-card-back-2, .stack-card-back-1, .stack-card-front {
+    position: absolute;
+    width: 100%; height: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .stack-card-back-2 {
+    transform: rotate(-5deg);
+    background: var(--surface-3);
+    z-index: 1;
+  }
+  .stack-card-back-1 {
+    transform: rotate(-2.5deg);
+    background: var(--surface-2);
+    z-index: 2;
+  }
+  .stack-card-front {
+    z-index: 3;
+    border-color: var(--border-bright);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .stack-card-img {
+    flex: 1;
+    background: var(--surface-3);
+    overflow: hidden;
+    position: relative;
+  }
+  .stack-card-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+  .stack-card-img .img-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 32px;
+    color: var(--gold-dim);
+  }
+  .stack-card-label {
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-top: 1px solid var(--border);
+  }
+  .stack-card-label h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--gold-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stack-card-label p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+  .deck-add-card {
+    cursor: pointer;
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    aspect-ratio: 5/7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--text-dim);
+    transition: all 0.2s;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    background: transparent;
+    border-color: rgba(11,196,227,0.2);
+  }
+  .deck-add-card:hover {
+    border-color: var(--gold);
+    color: var(--gold-light);
+    background: rgba(11,196,227,0.04);
+  }
+  .deck-add-card svg { width: 28px; height: 28px; opacity: 0.6; }
+  .deck-add-card:hover svg { opacity: 1; }
+
+  /* ── COLLECTION TABLE (Tab 2) ── */
+  .collection-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .collection-controls input[type=text] {
+    flex: 1;
+    min-width: 180px;
+    padding: 9px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: 'Crimson Pro', serif;
+    font-size: 15px;
+  }
+  .collection-controls input[type=text]:focus {
+    outline: none;
+    border-color: var(--border-bright);
+  }
+  select {
+    padding: 9px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: 'Crimson Pro', serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  select:focus { outline: none; border-color: var(--border-bright); }
+  select option { background: var(--surface-2); }
+
+  .view-toggle {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .view-btn {
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 15px;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 13px;
+  }
+  .view-btn.active { background: var(--surface-3); color: var(--gold-light); }
+  .view-btn:hover:not(.active) { color: var(--text-primary); }
+
+  .color-group {
+    margin-bottom: 36px;
+  }
+  .color-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .color-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .color-group-header h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .color-group-header span {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  /* Text table view */
+  .card-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .card-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .card-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(11,196,227,0.07);
+    vertical-align: middle;
+  }
+  .card-table tr:last-child td { border-bottom: none; }
+  .card-table tr:hover td { background: rgba(11,196,227,0.04); }
+  .card-name-cell { font-weight: 400; color: var(--text-primary); }
+  .card-set-badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.04em;
+    background: var(--surface-3);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .qty-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gold-light);
+  }
+  .price-cell { color: var(--gold); font-variant-numeric: tabular-nums; }
+  .deck-tag {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+
+  /* Gallery grid view */
+  .card-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+  }
+  .gallery-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: transform 0.18s, box-shadow 0.18s;
+    cursor: default;
+  }
+  .gallery-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    border-color: var(--border-bright);
+  }
+  .gallery-img {
+    aspect-ratio: 5/7;
+    background: var(--surface-3);
+    overflow: hidden;
+    position: relative;
+  }
+  .gallery-img img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .gallery-img .img-placeholder {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    color: var(--gold-dim);
+  }
+  .gallery-qty {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: rgba(14,12,10,0.85);
+    border: 1px solid var(--border-bright);
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    font-size: 12px; font-weight: 600;
+    color: var(--gold-light);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cinzel', serif;
+  }
+  .gallery-info {
+    padding: 8px 10px;
+  }
+  .gallery-info .g-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .gallery-info .g-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 2px;
+  }
+  .gallery-info .g-price {
+    font-size: 13px;
+    color: var(--gold);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  /* Color indicator pill */
+  .color-pip {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 5px;
+    flex-shrink: 0;
+  }
+
+  /* ── MODALS ── */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--surface-2);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .modal-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    color: var(--gold-light);
+    font-weight: 600;
+  }
+  .modal-header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 3px;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 22px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+  .modal-close:hover { color: var(--text-primary); background: var(--surface-3); }
+  .modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+  .modal-footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .modal-footer .spacer { flex: 1; }
+
+  /* Deck modal controls */
+  .deck-modal-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .deck-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-chip {
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .stat-chip .val {
+    font-size: 20px;
+    font-family: 'Cinzel', serif;
+    color: var(--gold-light);
+    font-weight: 600;
+  }
+  .stat-chip .lbl {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 2px;
+  }
+  .missing-card { background: rgba(192,57,43,0.08) !important; }
+  .missing-card td { color: rgba(240,232,214,0.5) !important; }
+  .missing-label {
+    font-size: 11px;
+    color: #e74c3c;
+    font-style: italic;
+    margin-left: 6px;
+  }
+
+  /* Add cards form */
+  .add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .add-row {
+    display: grid;
+    grid-template-columns: 160px 70px 90px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(11,196,227,0.07);
+  }
+  .add-row:last-child { border-bottom: none; }
+  .add-row input[type=text], .add-row input[type=number] {
+    padding: 9px 12px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: 'Crimson Pro', serif;
+    font-size: 15px;
+    width: 100%;
+  }
+  .add-row input:focus { outline: none; border-color: var(--border-bright); }
+  .add-row input[type=number] { text-align: center; }
+  .add-row-deck {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .deck-check-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .deck-check-row input[type=checkbox] { accent-color: var(--gold); cursor: pointer; }
+  .deck-select-wrap { display: none; }
+  .deck-select-wrap.visible { display: block; }
+  .add-row-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 18px;
+    padding: 8px;
+    border-radius: var(--radius);
+    margin-top: 2px;
+  }
+  .add-row-remove:hover { color: #e74c3c; background: rgba(192,57,43,0.1); }
+  .add-row-labels {
+    display: grid;
+    grid-template-columns: 160px 70px 90px 1fr auto;
+    gap: 10px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+  .add-row-labels span {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+  }
+
+  /* Manage deck form */
+  .manage-form input[type=text] {
+    padding: 9px 12px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: 'Crimson Pro', serif;
+    font-size: 15px;
+    width: 100%;
+  }
+  .manage-form input:focus { outline: none; border-color: var(--border-bright); }
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 7px;
+  }
+
+  /* Add deck modal cards input */
+  .deck-cards-section { margin-top: 20px; }
+  .deck-cards-section h4 {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Notification */
+  .notif {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    padding: 12px 20px;
+    font-size: 14px;
+    color: var(--text-primary);
+    z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(0);
+    animation: slideUp 0.25s ease;
+    max-width: 320px;
+  }
+  .notif.success { border-color: rgba(30,132,73,0.6); }
+  .notif.error { border-color: rgba(192,57,43,0.6); }
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  /* Loading */
+  .loading-row { text-align: center; padding: 20px; color: var(--text-secondary); font-style: italic; }
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-dim);
+  }
+  .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-state h3 { font-family: 'Cinzel', serif; font-size: 16px; color: var(--text-secondary); margin-bottom: 8px; }
+  .empty-state p { font-size: 14px; font-style: italic; }
+
+  /* Config banner */
+  .config-banner {
+    background: var(--surface-2);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .config-banner h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+  }
+  .config-banner p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px; }
+  .config-banner code {
+    font-family: monospace;
+    background: var(--surface-3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--gold);
+  }
+  .config-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .config-input-row input[type=text] {
+    flex: 1;
+    min-width: 280px;
+    padding: 10px 14px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-primary);
+    font-family: 'Crimson Pro', serif;
+    font-size: 14px;
+  }
+  .config-input-row input:focus { outline: none; border-color: var(--border-bright); }
+  .step-list { list-style: none; margin-bottom: 16px; counter-reset: steps; }
+  .step-list li {
+    counter-increment: steps;
+    padding: 6px 0 6px 28px;
+    position: relative;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .step-list li::before {
+    content: counter(steps);
+    position: absolute;
+    left: 0;
+    width: 20px; height: 20px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold);
+    top: 7px;
+  }
+
+  .color-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  .color-toggle input { accent-color: var(--gold); }
+
+  @media (max-width: 640px) {
+    .deck-grid { grid-template-columns: repeat(2, 1fr); gap: 20px 14px; }
+    .add-row { grid-template-columns: 1fr 60px 70px; }
+    .add-row-labels { grid-template-columns: 1fr 60px 70px; }
+    .add-row .add-row-deck { grid-column: 1 / -1; }
+    .add-row .add-row-remove { grid-column: 2; grid-row: 1; }
+    .deck-stats { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-rune">⬡</div>
+      <div>
+        <h1>Riftbound</h1>
+        <span>Collection Tracker</span>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('decks')">Decks</button>
+      <button class="tab-btn" onclick="switchTab('collection')">Collection</button>
+    </div>
+    <button class="settings-btn" onclick="openModal('settingsModal')" title="Settings" aria-label="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+
+  <!-- TAB 1: DECKS -->
+  <div class="tab-page active" id="tab-decks">
+    <div class="section-header">
+      <div>
+        <h2>Your Decks</h2>
+        <p id="deckSubtitle">Loading...</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddDeckModal()">+ New Deck</button>
+    </div>
+    <div class="deck-grid" id="deckGrid">
+      <div class="loading-row" style="grid-column:1/-1"><span class="spinner"></span> Loading decks…</div>
+    </div>
+  </div>
+
+  <!-- TAB 2: COLLECTION -->
+  <div class="tab-page" id="tab-collection">
+    <div class="section-header">
+      <div>
+        <h2>Master Collection</h2>
+        <p id="collectionSubtitle">Loading...</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddCardsModal()">+ Add Cards</button>
+    </div>
+    <div class="collection-controls">
+      <input type="text" id="collectionSearch" placeholder="Search cards…" oninput="renderCollection()">
+      <select id="filterColor" onchange="renderCollection()">
+        <option value="">All colors</option>
+        <option value="Red">Red</option>
+        <option value="Orange">Orange</option>
+        <option value="Yellow">Yellow</option>
+        <option value="Green">Green</option>
+        <option value="Blue">Blue</option>
+        <option value="Purple">Purple</option>
+        <option value="Colorless">Colorless</option>
+      </select>
+      <select id="filterType" onchange="renderCollection()">
+        <option value="">All types</option>
+        <option value="Unit">Unit</option>
+        <option value="Spell">Spell</option>
+        <option value="Gear">Gear</option>
+        <option value="Champion">Champion</option>
+        <option value="Landmark">Landmark</option>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewText" onclick="setView('text')">☰ Text</button>
+        <button class="view-btn" id="viewGallery" onclick="setView('gallery')">⊞ Gallery</button>
+      </div>
+      <label class="color-toggle">
+        <input type="checkbox" id="showColors" onchange="renderCollection()"> Show color
+      </label>
+    </div>
+    <div id="collectionContent">
+      <div class="loading-row"><span class="spinner"></span> Loading collection…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DECK VIEW MODAL ── -->
+<div class="modal-backdrop" id="deckViewModal">
+  <div class="modal" style="max-width:860px;">
+    <div class="modal-header">
+      <div>
+        <h2 id="deckViewName">Deck Name</h2>
+        <p id="deckViewSub">Champion · Set</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('deckViewModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="deck-stats" id="deckViewStats"></div>
+      <div class="deck-modal-controls">
+        <div class="view-toggle">
+          <button class="view-btn active" id="dvText" onclick="setDeckView('text')">☰ Text</button>
+          <button class="view-btn" id="dvGallery" onclick="setDeckView('gallery')">⊞ Gallery</button>
+        </div>
+        <label class="color-toggle">
+          <input type="checkbox" id="dvShowColor" onchange="renderDeckView()"> Card color
+        </label>
+        <div style="flex:1"></div>
+        <label class="color-toggle" id="missingToggle">
+          <input type="checkbox" id="dvMissing" onchange="renderDeckView()"> Highlight missing
+        </label>
+      </div>
+      <div id="deckViewContent"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="openManageDeckModal(currentDeckId)">⚙ Manage Deck</button>
+      <div class="spacer"></div>
+      <button class="btn" onclick="closeModal('deckViewModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MANAGE DECK MODAL ── -->
+<div class="modal-backdrop" id="manageDeckModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div><h2 id="manageDeckTitle">Manage Deck</h2></div>
+      <button class="modal-close" onclick="closeModal('manageDeckModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-form">
+        <div class="form-group">
+          <label class="form-label">Deck Name</label>
+          <input type="text" id="mgDeckName" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Champion / Leader Card Number</label>
+          <input type="text" id="mgLeaderNum" placeholder="e.g. OGN-001" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (optional)</label>
+          <input type="text" id="mgDescription" placeholder="e.g. Aggressive Noxus aggro" />
+        </div>
+        <div id="manageDeckCardRows" class="deck-cards-section">
+          <h4>Cards in this Deck</h4>
+          <div id="mgCardTable"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="deleteDeckBtn" onclick="confirmDeleteDeck()">Delete Deck</button>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" onclick="closeModal('manageDeckModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveManagedDeck()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD DECK MODAL ── -->
+<div class="modal-backdrop" id="addDeckModal">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <div><h2>New Deck</h2><p>Import a deck list or build manually</p></div>
+      <button class="modal-close" onclick="closeModal('addDeckModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:4px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px;margin-bottom:20px;">
+        <button class="deck-method-btn active" id="methodImportBtn" onclick="switchDeckMethod('import')">Import TXT</button>
+        <button class="deck-method-btn" id="methodBuildBtn" onclick="switchDeckMethod('build')">Build Manually</button>
+      </div>
+      <div id="methodImport" class="manage-form">
+        <div class="form-group">
+          <label class="form-label">Deck Name *</label>
+          <input type="text" id="importDeckName" placeholder="e.g. Jinx Burn" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (optional)</label>
+          <input type="text" id="importDeckDesc" placeholder="Short description&hellip;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Paste Deck List *</label>
+          <p style="font-size:12px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">One card per line &mdash; quantity then card name, e.g. <code style="background:var(--surface-3);padding:1px 5px;border-radius:3px;font-size:11px;color:var(--gold-light)">3 Jinx</code></p>
+          <textarea id="importDeckText" rows="10" placeholder="3 Jinx" style="width:100%;padding:10px 12px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:monospace;font-size:13px;line-height:1.6;resize:vertical;" oninput="previewImport()"></textarea>
+        </div>
+        <div id="importPreview" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius);font-size:13px;">
+            <span id="importPreviewCount" style="color:var(--gold-light);font-family:'Cinzel',serif;font-size:15px;font-weight:600;"></span>
+            <span style="color:var(--text-secondary);">cards parsed</span>
+            <span id="importPreviewWarning" style="color:#f39c12;font-style:italic;display:none;margin-left:auto;"></span>
+          </div>
+        </div>
+      </div>
+      <div id="methodBuild" class="manage-form" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Deck Name *</label>
+          <input type="text" id="buildDeckName" placeholder="e.g. Jinx Burn" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (optional)</label>
+          <input type="text" id="buildDeckDesc" placeholder="Short description&hellip;" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Leader Card Number *</label>
+          <input type="text" id="buildLeaderNum" placeholder="e.g. OGN-001" />
+          <p style="font-size:12px;color:var(--text-dim);margin-top:5px;font-style:italic;">Used for the deck cover image.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Card Numbers</span>
+            <span id="buildCardCount" style="font-family:'Cinzel',serif;font-size:12px;color:var(--text-secondary);">0 / 40</span>
+          </label>
+          <p style="font-size:12px;color:var(--text-dim);font-style:italic;margin-bottom:8px;">One card number per line. Repeat a line to add multiple copies.</p>
+          <textarea id="buildCardNums" rows="10" placeholder="OGN-042" style="width:100%;padding:10px 12px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:monospace;font-size:13px;line-height:1.6;resize:vertical;" oninput="updateBuildCount()"></textarea>
+          <div id="buildWarning" style="display:none;margin-top:8px;padding:9px 12px;background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.3);border-radius:var(--radius);font-size:13px;color:#f39c12;font-style:italic;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <span id="deckImportStatus" style="font-size:12px;color:var(--text-secondary);font-style:italic;display:none;"></span>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" onclick="closeModal('addDeckModal')">Cancel</button>
+      <button class="btn btn-primary" id="createDeckBtn" onclick="createDeck()">Create Deck</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD CARDS MODAL ── -->
+<div class="modal-backdrop" id="addCardsModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <div><h2>Add Cards</h2><p>Enter card numbers — card info loaded from local database</p></div>
+      <button class="modal-close" onclick="closeModal('addCardsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="add-row-labels">
+        <span>Card Number</span>
+        <span>Qty</span>
+        <span>Price (optional)</span>
+        <span>Deck assignment</span>
+        <span></span>
+      </div>
+      <div class="add-form" id="addRowsContainer"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="addInputRow()">+ Add another row</button>
+    </div>
+    <div class="modal-footer">
+      <div style="font-size:13px;color:var(--text-secondary);font-style:italic;">Cards already in your collection will have their quantity updated.</div>
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" onclick="closeModal('addCardsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAddCards()">
+        <span class="spinner" id="addSpinner" style="display:none"></span>
+        Add to Collection
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── SETTINGS MODAL ── -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div><h2>Settings</h2><p>Connect your data source and manage preferences</p></div>
+      <button class="modal-close" onclick="closeModal('settingsModal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Google Sheet Web App URL</label>
+        <p style="font-size:13px;color:var(--text-secondary);font-style:italic;line-height:1.6;margin-bottom:12px;">This tracker stores all data in a Google Sheet you own. Set up the Apps Script backend below, then paste your Web App URL here.</p>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="text" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:10px 14px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:'Crimson Pro',serif;font-size:14px;" />
+          <button class="btn btn-primary" onclick="saveSheetUrl()">Connect</button>
+        </div>
+        <div id="connectionStatus" style="margin-top:8px;font-size:13px;font-style:italic;"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:4px;">
+        <p style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:12px;">SETUP INSTRUCTIONS</p>
+        <ol class="step-list">
+          <li>Create a new Google Sheet and open <strong>Extensions &rarr; Apps Script</strong></li>
+          <li>Delete all existing code and paste the Apps Script code below</li>
+          <li>Click <strong>Deploy &rarr; New Deployment</strong> &mdash; set type to "Web app", execute as "Me", access "Anyone"</li>
+          <li>Copy the Web App URL and paste it above</li>
+        </ol>
+        <div style="position:relative;margin-top:4px;">
+          <pre id="appsScriptCode" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:11px;color:var(--text-secondary);overflow-x:auto;max-height:220px;overflow-y:auto;line-height:1.55;white-space:pre-wrap;font-family:monospace;"></pre>
+          <button class="btn btn-ghost btn-sm" onclick="copyAppsScript()" style="margin-top:8px;width:100%;">Copy Apps Script Code</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div class="spacer"></div>
+      <button class="btn btn-ghost" onclick="closeModal('settingsModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── APPS SCRIPT SOURCE ──
+const APPS_SCRIPT_SOURCE = `const SHEET_NAME_COLLECTION = 'Collection';
+const SHEET_NAME_DECKS = 'Decks';
+const SHEET_NAME_DECK_CARDS = 'DeckCards';
+
+function doGet(e) {
+  return handleRequest(e);
+}
+function doPost(e) {
+  return handleRequest(e);
+}
+
+function handleRequest(e) {
+  const p = e.parameter || {};
+  const body = e.postData ? JSON.parse(e.postData.contents || '{}') : {};
+  const action = p.action || body.action;
+  let result;
+  try {
+    switch(action) {
+      case 'getAll': result = getAll(); break;
+      case 'upsertCard': result = upsertCard(body); break;
+      case 'addDeck': result = addDeck(body); break;
+      case 'updateDeck': result = updateDeck(body); break;
+      case 'deleteDeck': result = deleteDeck(body); break;
+      case 'assignCardToDeck': result = assignCardToDeck(body); break;
+      default: result = { error: 'Unknown action: ' + action };
+    }
+  } catch(err) {
+    result = { error: err.toString() };
+  }
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSpreadsheet() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function getOrCreateSheet(name, headers) {
+  const ss = getSpreadsheet();
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function getAll() {
+  const colSh = getOrCreateSheet(SHEET_NAME_COLLECTION,
+    ['cardNumber','name','set','type','color','price','quantity','imageUrl','lastUpdated']);
+  const deckSh = getOrCreateSheet(SHEET_NAME_DECKS,
+    ['id','name','leaderCardNumber','leaderImage','description','createdAt']);
+  const dcSh = getOrCreateSheet(SHEET_NAME_DECK_CARDS,
+    ['deckId','cardNumber','quantity']);
+
+  const toObj = (sh, headers) => {
+    const rows = sh.getDataRange().getValues();
+    if (rows.length <= 1) return [];
+    return rows.slice(1).map(r => {
+      const o = {};
+      headers.forEach((h, i) => o[h] = r[i]);
+      return o;
+    }).filter(r => r[headers[0]]);
+  };
+
+  const colHeaders = ['cardNumber','name','set','type','color','price','quantity','imageUrl','lastUpdated'];
+  const deckHeaders = ['id','name','leaderCardNumber','leaderImage','description','createdAt'];
+  const dcHeaders = ['deckId','cardNumber','quantity'];
+
+  return {
+    collection: toObj(colSh, colHeaders),
+    decks: toObj(deckSh, deckHeaders),
+    deckCards: toObj(dcSh, dcHeaders)
+  };
+}
+
+function upsertCard(data) {
+  const sh = getOrCreateSheet(SHEET_NAME_COLLECTION,
+    ['cardNumber','name','set','type','color','price','quantity','imageUrl','lastUpdated']);
+  const vals = sh.getDataRange().getValues();
+  const cardNum = data.cardNumber;
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === cardNum) {
+      const newQty = parseInt(vals[i][6] || 0) + parseInt(data.quantity || 1);
+      sh.getRange(i+1, 7).setValue(newQty);
+      if (data.price) sh.getRange(i+1, 6).setValue(data.price);
+      sh.getRange(i+1, 9).setValue(new Date().toISOString());
+      return { status: 'updated', cardNumber: cardNum, quantity: newQty };
+    }
+  }
+  sh.appendRow([
+    cardNum,
+    data.name || '',
+    data.set || '',
+    data.type || '',
+    data.color || '',
+    data.price || 0,
+    parseInt(data.quantity || 1),
+    data.imageUrl || '',
+    new Date().toISOString()
+  ]);
+  return { status: 'added', cardNumber: cardNum };
+}
+
+function addDeck(data) {
+  const sh = getOrCreateSheet(SHEET_NAME_DECKS,
+    ['id','name','leaderCardNumber','leaderImage','description','createdAt']);
+  const id = 'deck_' + Date.now();
+  sh.appendRow([id, data.name, data.leaderCardNumber || '', data.leaderImage || '', data.description || '', new Date().toISOString()]);
+  return { status: 'added', id };
+}
+
+function updateDeck(data) {
+  const sh = getOrCreateSheet(SHEET_NAME_DECKS,
+    ['id','name','leaderCardNumber','leaderImage','description','createdAt']);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === data.id) {
+      if (data.name !== undefined) sh.getRange(i+1,2).setValue(data.name);
+      if (data.leaderCardNumber !== undefined) sh.getRange(i+1,3).setValue(data.leaderCardNumber);
+      if (data.leaderImage !== undefined) sh.getRange(i+1,4).setValue(data.leaderImage);
+      if (data.description !== undefined) sh.getRange(i+1,5).setValue(data.description);
+      return { status: 'updated' };
+    }
+  }
+  return { error: 'Deck not found' };
+}
+
+function deleteDeck(data) {
+  const sh = getOrCreateSheet(SHEET_NAME_DECKS,
+    ['id','name','leaderCardNumber','leaderImage','description','createdAt']);
+  const dcSh = getOrCreateSheet(SHEET_NAME_DECK_CARDS, ['deckId','cardNumber','quantity']);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === data.id) { sh.deleteRow(i+1); break; }
+  }
+  const dcVals = dcSh.getDataRange().getValues();
+  for (let i = dcVals.length - 1; i >= 1; i--) {
+    if (dcVals[i][0] === data.id) dcSh.deleteRow(i+1);
+  }
+  return { status: 'deleted' };
+}
+
+function assignCardToDeck(data) {
+  const sh = getOrCreateSheet(SHEET_NAME_DECK_CARDS, ['deckId','cardNumber','quantity']);
+  const vals = sh.getDataRange().getValues();
+  for (let i = 1; i < vals.length; i++) {
+    if (vals[i][0] === data.deckId && vals[i][1] === data.cardNumber) {
+      if (data.quantity === 0) { sh.deleteRow(i+1); return { status: 'removed' }; }
+      sh.getRange(i+1,3).setValue(data.quantity);
+      return { status: 'updated' };
+    }
+  }
+  if (data.quantity > 0) {
+    sh.appendRow([data.deckId, data.cardNumber, data.quantity]);
+    return { status: 'added' };
+  }
+  return { status: 'noop' };
+}`;
+
+function copyAppsScript() {
+  navigator.clipboard.writeText(APPS_SCRIPT_SOURCE).then(() => notify('Apps Script code copied!', 'success'));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('appsScriptCode');
+  if (el) el.textContent = APPS_SCRIPT_SOURCE;
+});
+
+// ── STATE ──
+let sheetUrl = localStorage.getItem('riftbound_sheet_url') || '';
+let state = { collection: [], decks: [], deckCards: [] };
+let cardDb = {}; // cardNumber -> card object, preloaded from Riftcodex
+const CARD_DB_CACHE_KEY = 'riftbound_card_db';
+const CARD_DB_CACHE_TS_KEY = 'riftbound_card_db_ts';
+const CARD_DB_TTL = 24 * 60 * 60 * 1000; // 24 hours
+let currentView = 'text';
+let currentDeckView = 'text';
+let currentDeckId = null;
+
+// ── INIT ──
+window.onload = async function() {
+  await preloadCardDb();
+  if (sheetUrl) {
+    document.getElementById('sheetUrlInput').value = sheetUrl;
+    loadData();
+  } else {
+    renderDecks();
+    renderCollection();
+  }
+};
+
+async function preloadCardDb() {
+  // Try localStorage cache first
+  try {
+    const ts = parseInt(localStorage.getItem(CARD_DB_CACHE_TS_KEY) || '0');
+    if (Date.now() - ts < CARD_DB_TTL) {
+      const cached = localStorage.getItem(CARD_DB_CACHE_KEY);
+      if (cached) {
+        cardDb = JSON.parse(cached);
+        console.log(`Card DB loaded from cache (${Object.keys(cardDb).length} cards)`);
+        return;
+      }
+    }
+  } catch(e) {}
+
+  // Fetch from Riftcodex
+  console.log('Fetching card DB from Riftcodex...');
+  const allCards = [];
+  let page = 1;
+  while (true) {
+    try {
+      const r = await fetch(`https://api.riftcodex.com/cards?size=100&page=${page}&sort=collector_number`);
+      if (!r.ok) break;
+      const data = await r.json();
+      const items = data.items || data.cards || data.data || (Array.isArray(data) ? data : []);
+      if (!items.length) break;
+      allCards.push(...items);
+      if (items.length < 100) break;
+      page++;
+    } catch(e) { break; }
+  }
+
+  // Build lookup map keyed by riftbound_id (e.g. OGN-042)
+  cardDb = {};
+  for (const c of allCards) {
+    const rid = (c.riftbound_id || c.id || '').toUpperCase();
+    if (!rid) continue;
+    cardDb[rid] = normalizeRiftcodexCard(c);
+    // Also index by short form e.g. OGN-42 -> OGN-042
+    const short = rid.replace(/-0+(\d)$/, '-$1');
+    if (short !== rid) cardDb[short] = cardDb[rid];
+  }
+
+  try {
+    localStorage.setItem(CARD_DB_CACHE_KEY, JSON.stringify(cardDb));
+    localStorage.setItem(CARD_DB_CACHE_TS_KEY, Date.now().toString());
+  } catch(e) {}
+  console.log(`Card DB loaded from API (${Object.keys(cardDb).length} cards)`);
+}
+
+function normalizeRiftcodexCard(c) {
+  const rid = (c.riftbound_id || c.id || '').toUpperCase();
+  return {
+    cardNumber: rid,
+    name: c.name || '',
+    set: (c.set_id || c.set || '').toUpperCase(),
+    type: c.type || c.card_type || '',
+    color: normalizeColor(c.domain || c.faction || c.color || ''),
+    price: 0,
+    imageUrl: c.image_url || c.image || (rid ? `https://images.scrydex.com/riftbound/${rid}/small` : '')
+  };
+}
+
+function getCardFromDb(cardNumber) {
+  if (!cardNumber) return null;
+  const key = cardNumber.toUpperCase();
+  return cardDb[key] || null;
+}
+
+function saveSheetUrl() {
+  const val = document.getElementById('sheetUrlInput').value.trim();
+  if (!val) { notify('Please enter a URL', 'error'); return; }
+  sheetUrl = val;
+  localStorage.setItem('riftbound_sheet_url', sheetUrl);
+  updateConnectionStatus();
+  notify('Connected! Loading data…', 'success');
+  closeModal('settingsModal');
+  loadData();
+}
+
+async function apiCall(action, body = {}) {
+  if (!sheetUrl) { notify('Please connect a Google Sheet first', 'error'); return null; }
+  body.action = action;
+  const res = await fetch(sheetUrl, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'text/plain' }
+  });
+  const data = await res.json();
+  if (data.error) { notify('Error: ' + data.error, 'error'); return null; }
+  return data;
+}
+
+async function loadData() {
+  const data = await apiCall('getAll');
+  if (data) {
+    state.collection = data.collection || [];
+    state.decks = data.decks || [];
+    state.deckCards = data.deckCards || [];
+    renderDecks();
+    renderCollection();
+  }
+}
+
+// ── TAB SWITCH ──
+function switchTab(tab) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── CARD COLOR HELPERS ──
+const COLOR_MAP = {
+  Red: { hex: '#c0392b', label: 'Red' },
+  Orange: { hex: '#d35400', label: 'Orange' },
+  Yellow: { hex: '#d4ac0d', label: 'Yellow' },
+  Green: { hex: '#1e8449', label: 'Green' },
+  Blue: { hex: '#1a5276', label: 'Blue' },
+  Purple: { hex: '#6c3483', label: 'Purple' },
+  Colorless: { hex: '#5d6d7e', label: 'Colorless' },
+};
+
+function colorPip(color) {
+  const c = COLOR_MAP[color];
+  if (!c) return '';
+  return `<span class="color-pip" style="background:${c.hex}"></span>`;
+}
+
+function cardImageUrl(card) {
+  if (card.imageUrl) return card.imageUrl;
+  if (card.cardNumber) return `https://images.scrydex.com/riftbound/${card.cardNumber}/small`;
+  return '';
+}
+
+// ── DECK TAB ──
+function renderDecks() {
+  const grid = document.getElementById('deckGrid');
+  const sub = document.getElementById('deckSubtitle');
+  sub.textContent = `${state.decks.length} deck${state.decks.length !== 1 ? 's' : ''} · ${state.collection.length} cards owned`;
+
+  if (!state.decks.length) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="14" height="18" rx="2"/><path d="M8 4V2m4 2V2"/><path d="M6 10h6M6 14h4"/></svg>
+        <h3>No decks yet</h3>
+        <p>Create your first deck to get started</p>
+      </div>`;
+    return;
+  }
+
+  const deckCards = state.deckCards;
+  let html = '';
+  for (const deck of state.decks) {
+    const cards = deckCards.filter(dc => dc.deckId === deck.id);
+    const cardCount = cards.reduce((s, c) => s + parseInt(c.quantity || 0), 0);
+    const imgUrl = deck.leaderImage || (deck.leaderCardNumber ? `https://images.scrydex.com/riftbound/${deck.leaderCardNumber}/medium` : '');
+    html += `
+      <div class="deck-stack" onclick="openDeckView('${deck.id}')">
+        <div class="stack-card-back-2"></div>
+        <div class="stack-card-back-1"></div>
+        <div class="stack-card-front">
+          <div class="stack-card-img">
+            ${imgUrl ? `<img src="${imgUrl}" alt="${deck.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="img-placeholder" style="display:none">⬡</div>` : `<div class="img-placeholder">⬡</div>`}
+          </div>
+          <div class="stack-card-label">
+            <h3>${deck.name}</h3>
+            <p>${cardCount} card${cardCount !== 1 ? 's' : ''}${deck.description ? ' · ' + deck.description : ''}</p>
+          </div>
+        </div>
+      </div>`;
+  }
+  html += `<div class="deck-add-card" onclick="openAddDeckModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+    New Deck
+  </div>`;
+  grid.innerHTML = html;
+}
+
+// ── DECK VIEW MODAL ──
+function openDeckView(deckId) {
+  currentDeckId = deckId;
+  const deck = state.decks.find(d => d.id === deckId);
+  if (!deck) return;
+  document.getElementById('deckViewName').textContent = deck.name;
+  document.getElementById('deckViewSub').textContent = deck.description || '';
+  document.getElementById('dvMissing').checked = false;
+  document.getElementById('dvShowColor').checked = false;
+  setDeckView('text', true);
+  renderDeckView();
+  openModal('deckViewModal');
+}
+
+function setDeckView(mode, noRender) {
+  currentDeckView = mode;
+  document.getElementById('dvText').classList.toggle('active', mode === 'text');
+  document.getElementById('dvGallery').classList.toggle('active', mode === 'gallery');
+  if (!noRender) renderDeckView();
+}
+
+function renderDeckView() {
+  const deck = state.decks.find(d => d.id === currentDeckId);
+  if (!deck) return;
+  const deckCards = state.deckCards.filter(dc => dc.deckId === currentDeckId);
+  const showColor = document.getElementById('dvShowColor').checked;
+  const showMissing = document.getElementById('dvMissing').checked;
+
+  const collectionMap = {};
+  state.collection.forEach(c => { collectionMap[c.cardNumber] = c; });
+
+  const enriched = deckCards.map(dc => {
+    const col = collectionMap[dc.cardNumber] || {};
+    return { ...dc, ...col, cardNumber: dc.cardNumber, deckQty: parseInt(dc.quantity || 0), ownedQty: parseInt(col.quantity || 0) };
+  });
+
+  const totalCards = enriched.reduce((s, c) => s + c.deckQty, 0);
+  const totalCost = enriched.reduce((s, c) => s + (parseFloat(c.price || 0) * c.deckQty), 0);
+  const missing = enriched.filter(c => c.ownedQty < c.deckQty).reduce((s, c) => s + (c.deckQty - c.ownedQty), 0);
+
+  document.getElementById('deckViewStats').innerHTML = `
+    <div class="stat-chip"><div class="val">${totalCards}</div><div class="lbl">Cards</div></div>
+    <div class="stat-chip"><div class="val">$${totalCost.toFixed(2)}</div><div class="lbl">Est. Cost</div></div>
+    <div class="stat-chip"><div class="val">${missing}</div><div class="lbl">Missing</div></div>`;
+
+  const content = document.getElementById('deckViewContent');
+  if (!enriched.length) {
+    content.innerHTML = `<div class="empty-state"><p>No cards in this deck yet. Use Manage Deck to add cards.</p></div>`;
+    return;
+  }
+
+  if (currentDeckView === 'gallery') {
+    let html = `<div class="card-gallery">`;
+    for (const c of enriched) {
+      const isMissing = showMissing && c.ownedQty < c.deckQty;
+      const imgUrl = cardImageUrl(c);
+      html += `<div class="gallery-card" ${isMissing ? 'style="opacity:0.5;border-color:rgba(192,57,43,0.4)"' : ''}>
+        <div class="gallery-img">
+          ${imgUrl ? `<img src="${imgUrl}" alt="${c.name}" loading="lazy">` : `<div class="img-placeholder">⬡</div>`}
+          <div class="gallery-qty">${c.deckQty}</div>
+        </div>
+        <div class="gallery-info">
+          <div class="g-name">${showColor ? colorPip(c.color) : ''}${c.name || c.cardNumber}</div>
+          <div class="g-meta">${c.set || ''}</div>
+          <div class="g-price">${c.price ? '$' + parseFloat(c.price).toFixed(2) : '—'}</div>
+          ${isMissing ? `<div style="font-size:11px;color:#e74c3c;font-style:italic">Need ${c.deckQty - c.ownedQty} more</div>` : ''}
+        </div>
+      </div>`;
+    }
+    html += `</div>`;
+    content.innerHTML = html;
+  } else {
+    let html = `<table class="card-table"><thead><tr>
+      <th>Card</th><th>Set</th><th>Type</th><th>Price</th><th>Qty</th><th>Owned</th>
+    </tr></thead><tbody>`;
+    for (const c of enriched) {
+      const isMissing = showMissing && c.ownedQty < c.deckQty;
+      html += `<tr ${isMissing ? 'class="missing-card"' : ''}>
+        <td class="card-name-cell">${showColor ? colorPip(c.color) : ''}${c.name || c.cardNumber}${isMissing ? `<span class="missing-label">need ${c.deckQty - c.ownedQty} more</span>` : ''}</td>
+        <td><span class="card-set-badge">${c.set || '—'}</span></td>
+        <td style="color:var(--text-secondary);font-size:13px">${c.type || '—'}</td>
+        <td class="price-cell">${c.price ? '$' + parseFloat(c.price).toFixed(2) : '—'}</td>
+        <td><span class="qty-badge">${c.deckQty}</span></td>
+        <td style="color:${c.ownedQty >= c.deckQty ? 'var(--text-secondary)' : '#e74c3c'}">${c.ownedQty}</td>
+      </tr>`;
+    }
+    html += `</tbody></table>`;
+    content.innerHTML = html;
+  }
+}
+
+// ── MANAGE DECK ──
+function openManageDeckModal(deckId) {
+  closeModal('deckViewModal');
+  const deck = state.decks.find(d => d.id === deckId);
+  if (!deck) return;
+  currentDeckId = deckId;
+  document.getElementById('manageDeckTitle').textContent = 'Manage — ' + deck.name;
+  document.getElementById('mgDeckName').value = deck.name;
+  document.getElementById('mgLeaderNum').value = deck.leaderCardNumber || '';
+  document.getElementById('mgDescription').value = deck.description || '';
+
+  const deckCards = state.deckCards.filter(dc => dc.deckId === deckId);
+  const collectionMap = {};
+  state.collection.forEach(c => { collectionMap[c.cardNumber] = c; });
+
+  let tableHtml = `<table class="card-table" style="margin-bottom:16px"><thead><tr><th>Card</th><th>Set</th><th>Qty in Deck</th><th></th></tr></thead><tbody>`;
+  for (const dc of deckCards) {
+    const col = collectionMap[dc.cardNumber] || {};
+    tableHtml += `<tr>
+      <td>${col.name || dc.cardNumber}</td>
+      <td><span class="card-set-badge">${col.set || '—'}</span></td>
+      <td><input type="number" min="0" value="${dc.quantity}" style="width:60px;padding:4px 8px;background:var(--surface-3);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:inherit;text-align:center" data-card="${dc.cardNumber}" onchange="updateDeckCardQty('${dc.cardNumber}', this.value)"></td>
+      <td><button class="btn-danger" style="background:none;border:none;cursor:pointer;color:#e74c3c;font-size:16px" onclick="removeCardFromDeck('${dc.cardNumber}')">✕</button></td>
+    </tr>`;
+  }
+  tableHtml += `</tbody></table>`;
+
+  // Add cards to deck section
+  tableHtml += `<div style="margin-top:16px;">
+    <p style="font-family:'Cinzel',serif;font-size:11px;letter-spacing:0.06em;color:var(--text-secondary);margin-bottom:8px;">ADD CARD TO DECK</p>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select id="mgAddCardSelect" style="flex:1">
+        <option value="">Select card from collection…</option>
+        ${state.collection.map(c => `<option value="${c.cardNumber}">${c.name || c.cardNumber} (${c.cardNumber})</option>`).join('')}
+      </select>
+      <input type="number" id="mgAddCardQty" min="1" value="1" style="width:60px;padding:9px 8px;background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:inherit;text-align:center">
+      <button class="btn btn-sm" onclick="addCardToDeckFromManage()">Add</button>
+    </div>
+  </div>`;
+
+  document.getElementById('mgCardTable').innerHTML = tableHtml;
+  openModal('manageDeckModal');
+}
+
+async function updateDeckCardQty(cardNumber, qty) {
+  const result = await apiCall('assignCardToDeck', { deckId: currentDeckId, cardNumber, quantity: parseInt(qty) });
+  if (result) {
+    const idx = state.deckCards.findIndex(dc => dc.deckId === currentDeckId && dc.cardNumber === cardNumber);
+    if (idx >= 0) {
+      if (parseInt(qty) === 0) state.deckCards.splice(idx, 1);
+      else state.deckCards[idx].quantity = qty;
+    }
+    notify('Updated', 'success');
+  }
+}
+
+async function removeCardFromDeck(cardNumber) {
+  await updateDeckCardQty(cardNumber, 0);
+  openManageDeckModal(currentDeckId);
+}
+
+async function addCardToDeckFromManage() {
+  const cardNumber = document.getElementById('mgAddCardSelect').value;
+  const qty = parseInt(document.getElementById('mgAddCardQty').value) || 1;
+  if (!cardNumber) { notify('Select a card', 'error'); return; }
+  const result = await apiCall('assignCardToDeck', { deckId: currentDeckId, cardNumber, quantity: qty });
+  if (result) {
+    const existing = state.deckCards.find(dc => dc.deckId === currentDeckId && dc.cardNumber === cardNumber);
+    if (existing) existing.quantity = qty;
+    else state.deckCards.push({ deckId: currentDeckId, cardNumber, quantity: qty });
+    notify('Card added to deck', 'success');
+    openManageDeckModal(currentDeckId);
+  }
+}
+
+async function saveManagedDeck() {
+  const name = document.getElementById('mgDeckName').value.trim();
+  if (!name) { notify('Deck name required', 'error'); return; }
+  const leaderCardNumber = document.getElementById('mgLeaderNum').value.trim();
+  let leaderImage = '';
+  if (leaderCardNumber) {
+    leaderImage = `https://images.scrydex.com/riftbound/${leaderCardNumber}/medium`;
+  }
+  const result = await apiCall('updateDeck', {
+    id: currentDeckId, name, leaderCardNumber, leaderImage,
+    description: document.getElementById('mgDescription').value.trim()
+  });
+  if (result) {
+    const deck = state.decks.find(d => d.id === currentDeckId);
+    if (deck) { deck.name = name; deck.leaderCardNumber = leaderCardNumber; deck.leaderImage = leaderImage; deck.description = document.getElementById('mgDescription').value.trim(); }
+    closeModal('manageDeckModal');
+    renderDecks();
+    notify('Deck updated', 'success');
+  }
+}
+
+async function confirmDeleteDeck() {
+  if (!confirm('Delete this deck? This cannot be undone.')) return;
+  const result = await apiCall('deleteDeck', { id: currentDeckId });
+  if (result) {
+    state.decks = state.decks.filter(d => d.id !== currentDeckId);
+    state.deckCards = state.deckCards.filter(dc => dc.deckId !== currentDeckId);
+    closeModal('manageDeckModal');
+    renderDecks();
+    notify('Deck deleted', 'success');
+  }
+}
+
+// ── ADD DECK ──
+let currentDeckMethod = 'import';
+
+function openAddDeckModal() {
+  switchDeckMethod('import');
+  openModal('addDeckModal');
+}
+
+function switchDeckMethod(method) {
+  currentDeckMethod = method;
+  document.getElementById('methodImport').style.display = method === 'import' ? '' : 'none';
+  document.getElementById('methodBuild').style.display = method === 'build' ? '' : 'none';
+  document.getElementById('methodImportBtn').classList.toggle('active', method === 'import');
+  document.getElementById('methodBuildBtn').classList.toggle('active', method === 'build');
+}
+
+function parseImportText(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const cards = [];
+  for (const line of lines) {
+    const match = line.match(/^(\d+)\s+(.+)$/);
+    if (match) {
+      const qty = parseInt(match[1]);
+      let name = match[2].trim();
+      let cardNumber = null;
+      const parenMatch = name.match(/^(.+?)\s*\(([A-Z]{2,4}-\d{2,4}[A-Z]?)\)\s*$/);
+      if (parenMatch) {
+        name = parenMatch[1].trim();
+        cardNumber = parenMatch[2].trim();
+      }
+      cards.push({ quantity: qty, name, cardNumber });
+    }
+  }
+  return cards;
+}
+
+function previewImport() {
+  const text = document.getElementById('importDeckText').value;
+  const cards = parseImportText(text);
+  const preview = document.getElementById('importPreview');
+  const countEl = document.getElementById('importPreviewCount');
+  const warnEl = document.getElementById('importPreviewWarning');
+  if (!text.trim()) { preview.style.display = 'none'; return; }
+  preview.style.display = '';
+  const total = cards.reduce((s, c) => s + c.quantity, 0);
+  countEl.textContent = total;
+  if (total > 0 && total < 41) {
+    warnEl.style.display = '';
+    warnEl.textContent = `Incomplete deck (${total}/41 cards)`;
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+
+function updateBuildCount() {
+  const lines = document.getElementById('buildCardNums').value.split('\n').map(l => l.trim()).filter(Boolean);
+  const count = lines.length;
+  const countEl = document.getElementById('buildCardCount');
+  const warnEl = document.getElementById('buildWarning');
+  countEl.textContent = `${count} / 40`;
+  countEl.style.color = count === 40 ? 'var(--gold)' : count > 40 ? '#e74c3c' : 'var(--text-secondary)';
+  if (count > 0 && count < 40) {
+    warnEl.style.display = '';
+    warnEl.textContent = `Incomplete deck — only ${count} of 40 cards entered. You can still save and finish later.`;
+  } else if (count > 40) {
+    warnEl.style.display = '';
+    warnEl.textContent = `Too many cards — ${count} entered, maximum is 40.`;
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+
+async function createDeck() {
+  if (currentDeckMethod === 'import') {
+    await createDeckImport();
+  } else {
+    await createDeckBuild();
+  }
+}
+
+function lookupCardByName(name) {
+  // Search local cardDb by name (exact then fuzzy)
+  const lower = name.toLowerCase().trim();
+  // Exact match
+  for (const card of Object.values(cardDb)) {
+    if (card.name.toLowerCase() === lower) return card;
+  }
+  // Starts-with match
+  for (const card of Object.values(cardDb)) {
+    if (card.name.toLowerCase().startsWith(lower)) return card;
+  }
+  // Contains match
+  for (const card of Object.values(cardDb)) {
+    if (card.name.toLowerCase().includes(lower)) return card;
+  }
+  return null;
+}
+
+function setDeckImportStatus(msg) {
+  const el = document.getElementById('deckImportStatus');
+  if (!el) return;
+  if (msg) { el.textContent = msg; el.style.display = ''; }
+  else { el.textContent = ''; el.style.display = 'none'; }
+}
+
+async function createDeckImport() {
+  const name = document.getElementById('importDeckName').value.trim();
+  if (!name) { notify('Deck name required', 'error'); return; }
+  const text = document.getElementById('importDeckText').value.trim();
+  if (!text) { notify('Paste a deck list to import', 'error'); return; }
+  const cards = parseImportText(text);
+  if (!cards.length) { notify('No valid cards found — use format: 3 Jinx', 'error'); return; }
+
+  const btn = document.getElementById('createDeckBtn');
+  btn.textContent = 'Create Deck';
+  btn.disabled = true;
+  setDeckImportStatus('Starting…');
+
+  // Create the deck first
+  const result = await apiCall('addDeck', {
+    name,
+    leaderCardNumber: '',
+    leaderImage: '',
+    description: document.getElementById('importDeckDesc').value.trim()
+  });
+  if (!result) { btn.textContent = 'Create Deck'; btn.disabled = false; return; }
+
+  const deckId = result.id;
+  const desc = document.getElementById('importDeckDesc').value.trim();
+  state.decks.push({ id: deckId, name, leaderCardNumber: '', leaderImage: '', description: desc });
+
+  let resolved = 0, failed = [];
+  let leaderCardNumber = '', leaderImage = '';
+
+  // Separate cards with known numbers from those needing lookup
+  const needsLookup = cards.filter(c => !c.cardNumber);
+  const hasNumber = cards.filter(c => c.cardNumber);
+  const total = cards.length;
+  let processed = 0;
+
+  // Process cards with known card numbers directly via card API
+  for (const c of hasNumber) {
+    processed++;
+    setDeckImportStatus(`Processing ${processed} of ${total}…`);
+    let cardData = null;
+    try {
+      const r = await fetch(`https://riftscribe.gg/api/cards/${c.cardNumber}`);
+      if (r.ok) {
+        const d = await r.json();
+        cardData = {
+          cardNumber: c.cardNumber,
+          name: d.name || c.name,
+          set: d.set_id || d.set || '',
+          type: d.type || d.card_type || '',
+          color: normalizeColor(d.faction || d.color || d.domain || ''),
+          price: 0,
+          imageUrl: d.image_url || `https://images.scrydex.com/riftbound/${c.cardNumber}/small`
+        };
+      }
+    } catch(e) {}
+    if (!cardData) cardData = { cardNumber: c.cardNumber, name: c.name, set: '', type: '', color: '', price: 0, imageUrl: '' };
+    resolved++;
+    if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('champion') || cardData.type?.toLowerCase().includes('legend'))) {
+      leaderCardNumber = c.cardNumber;
+      leaderImage = `https://images.scrydex.com/riftbound/${c.cardNumber}/medium`;
+    }
+    const existingCol = state.collection.find(col => col.cardNumber === c.cardNumber);
+    if (!existingCol) {
+      await apiCall('upsertCard', { ...cardData, quantity: c.quantity });
+      state.collection.push({ ...cardData, quantity: c.quantity });
+    }
+    await apiCall('assignCardToDeck', { deckId, cardNumber: c.cardNumber, quantity: c.quantity });
+    state.deckCards.push({ deckId, cardNumber: c.cardNumber, quantity: c.quantity });
+  }
+
+  // Process cards that only have names — do fuzzy lookup
+  for (const c of needsLookup) {
+    processed++;
+    setDeckImportStatus(`Looking up ${processed} of ${total}…`);
+    const cardData = await lookupCardByName(c.name);
+    let cardNumber;
+    if (cardData && cardData.cardNumber) {
+      cardNumber = cardData.cardNumber;
+      resolved++;
+      if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('champion') || cardData.type?.toLowerCase().includes('legend'))) {
+        leaderCardNumber = cardNumber;
+        leaderImage = `https://images.scrydex.com/riftbound/${cardNumber}/medium`;
+      }
+      const existingCol = state.collection.find(col => col.cardNumber === cardNumber);
+      if (!existingCol) {
+        await apiCall('upsertCard', { ...cardData, quantity: c.quantity });
+        state.collection.push({ ...cardData, quantity: c.quantity });
+      }
+    } else {
+      cardNumber = 'NAME:' + c.name.toUpperCase();
+      failed.push(c.name);
+    }
+    await apiCall('assignCardToDeck', { deckId, cardNumber, quantity: c.quantity });
+    state.deckCards.push({ deckId, cardNumber, quantity: c.quantity });
+  }
+
+  // If we found a leader, update the deck with its image
+  if (leaderCardNumber) {
+    await apiCall('updateDeck', { id: deckId, leaderCardNumber, leaderImage });
+    const deck = state.decks.find(d => d.id === deckId);
+    if (deck) { deck.leaderCardNumber = leaderCardNumber; deck.leaderImage = leaderImage; }
+  }
+
+  closeModal('addDeckModal');
+  document.getElementById('importDeckName').value = '';
+  document.getElementById('importDeckDesc').value = '';
+  document.getElementById('importDeckText').value = '';
+  document.getElementById('importPreview').style.display = 'none';
+  btn.disabled = false;
+  setDeckImportStatus('');
+  renderDecks();
+
+  if (failed.length) {
+    notify(`Deck created! ${resolved} cards found, ${failed.length} not matched: ${failed.slice(0,3).join(', ')}${failed.length > 3 ? '…' : ''}`, 'error');
+  } else {
+    notify(`Deck created! All ${cards.length} cards resolved.`, 'success');
+  }
+}
+
+async function createDeckBuild() {
+  const name = document.getElementById('buildDeckName').value.trim();
+  if (!name) { notify('Deck name required', 'error'); return; }
+  const leaderCardNumber = document.getElementById('buildLeaderNum').value.trim().toUpperCase();
+  if (!leaderCardNumber) { notify('Leader card number required', 'error'); return; }
+
+  const lines = document.getElementById('buildCardNums').value.split('\n').map(l => l.trim().toUpperCase()).filter(Boolean);
+  if (lines.length > 40) { notify('Too many cards — max 40 (not counting the leader)', 'error'); return; }
+
+  const btn = document.getElementById('createDeckBtn');
+  btn.textContent = 'Creating…';
+  btn.disabled = true;
+
+  const leaderImage = `https://images.scrydex.com/riftbound/${leaderCardNumber}/medium`;
+  const result = await apiCall('addDeck', {
+    name, leaderCardNumber, leaderImage,
+    description: document.getElementById('buildDeckDesc').value.trim()
+  });
+  if (!result) { btn.textContent = 'Create Deck'; btn.disabled = false; return; }
+
+  const deckId = result.id;
+  state.decks.push({ id: deckId, name, leaderCardNumber, leaderImage, description: document.getElementById('buildDeckDesc').value.trim() });
+
+  // Leader card
+  await apiCall('assignCardToDeck', { deckId, cardNumber: leaderCardNumber, quantity: 1 });
+  state.deckCards.push({ deckId, cardNumber: leaderCardNumber, quantity: 1 });
+
+  // Count duplicates
+  const cardCounts = {};
+  for (const num of lines) {
+    cardCounts[num] = (cardCounts[num] || 0) + 1;
+  }
+  for (const [cardNumber, quantity] of Object.entries(cardCounts)) {
+    await apiCall('assignCardToDeck', { deckId, cardNumber, quantity });
+    state.deckCards.push({ deckId, cardNumber, quantity });
+  }
+
+  closeModal('addDeckModal');
+  document.getElementById('buildDeckName').value = '';
+  document.getElementById('buildDeckDesc').value = '';
+  document.getElementById('buildLeaderNum').value = '';
+  document.getElementById('buildCardNums').value = '';
+  document.getElementById('buildWarning').style.display = 'none';
+  document.getElementById('buildCardCount').textContent = '0 / 40';
+  btn.textContent = 'Create Deck';
+  btn.disabled = false;
+  renderDecks();
+  const msg = lines.length < 40 ? `Deck saved as incomplete (${lines.length}/40 cards)` : 'Deck created!';
+  notify(msg, 'success');
+}
+
+// ── COLLECTION TAB ──
+function setView(mode) {
+  currentView = mode;
+  document.getElementById('viewText').classList.toggle('active', mode === 'text');
+  document.getElementById('viewGallery').classList.toggle('active', mode === 'gallery');
+  renderCollection();
+}
+
+function renderCollection() {
+  const search = document.getElementById('collectionSearch').value.toLowerCase();
+  const filterColor = document.getElementById('filterColor').value;
+  const filterType = document.getElementById('filterType').value;
+  const showColors = document.getElementById('showColors').checked;
+  const content = document.getElementById('collectionContent');
+  const sub = document.getElementById('collectionSubtitle');
+
+  let cards = state.collection;
+  if (search) cards = cards.filter(c => (c.name || '').toLowerCase().includes(search) || (c.cardNumber || '').toLowerCase().includes(search));
+  if (filterColor) cards = cards.filter(c => c.color === filterColor);
+  if (filterType) cards = cards.filter(c => c.type === filterType);
+
+  const totalValue = cards.reduce((s, c) => s + parseFloat(c.price || 0) * parseInt(c.quantity || 0), 0);
+  sub.textContent = `${cards.length} unique cards · ${cards.reduce((s,c) => s + parseInt(c.quantity||0), 0)} total · Est. $${totalValue.toFixed(2)}`;
+
+  if (!cards.length) {
+    content.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12V7l-5-5H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8"/><path d="M14 2v5h5"/><path d="M18 14l3 3-3 3M21 17h-8"/></svg>
+      <h3>${state.collection.length ? 'No cards match your filters' : 'No cards yet'}</h3>
+      <p>${state.collection.length ? 'Try clearing the filters' : 'Click "+ Add Cards" to start building your collection'}</p>
+    </div>`;
+    return;
+  }
+
+  // Group by color then type
+  const colorOrder = ['Red','Orange','Yellow','Green','Blue','Purple','Colorless',''];
+  const typeOrder = ['Champion','Unit','Spell','Gear','Landmark'];
+
+  const groups = {};
+  for (const c of cards) {
+    const color = c.color || 'Unknown';
+    if (!groups[color]) groups[color] = {};
+    const type = c.type || 'Other';
+    if (!groups[color][type]) groups[color][type] = [];
+    groups[color][type].push(c);
+  }
+
+  // Deck assignments map
+  const deckMap = {};
+  state.deckCards.forEach(dc => {
+    if (!deckMap[dc.cardNumber]) deckMap[dc.cardNumber] = [];
+    const deck = state.decks.find(d => d.id === dc.deckId);
+    if (deck) deckMap[dc.cardNumber].push(deck.name);
+  });
+
+  let html = '';
+  const sortedColors = Object.keys(groups).sort((a,b) => {
+    const ai = colorOrder.indexOf(a), bi = colorOrder.indexOf(b);
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+  });
+
+  for (const color of sortedColors) {
+    const colorInfo = COLOR_MAP[color] || { hex: '#888', label: color };
+    const colorCards = Object.values(groups[color]).flat();
+    const colorValue = colorCards.reduce((s,c) => s + parseFloat(c.price||0)*parseInt(c.quantity||0), 0);
+
+    html += `<div class="color-group">
+      <div class="color-group-header">
+        <div class="color-dot" style="background:${colorInfo.hex}"></div>
+        <h3>${colorInfo.label || color}</h3>
+        <span>${colorCards.length} cards · $${colorValue.toFixed(2)}</span>
+      </div>`;
+
+    const types = Object.keys(groups[color]).sort((a,b) => {
+      const ai = typeOrder.indexOf(a), bi = typeOrder.indexOf(b);
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+    });
+
+    for (const type of types) {
+      const typeCards = groups[color][type];
+      if (currentView === 'gallery') {
+        html += `<p style="font-family:'Cinzel',serif;font-size:11px;color:var(--text-dim);letter-spacing:0.06em;margin-bottom:10px;margin-top:12px">${type.toUpperCase()}</p>`;
+        html += `<div class="card-gallery" style="margin-bottom:16px">`;
+        for (const c of typeCards) {
+          const imgUrl = cardImageUrl(c);
+          const decks = deckMap[c.cardNumber] || [];
+          html += `<div class="gallery-card">
+            <div class="gallery-img">
+              ${imgUrl ? `<img src="${imgUrl}" alt="${c.name}" loading="lazy">` : `<div class="img-placeholder">⬡</div>`}
+              <div class="gallery-qty">${c.quantity}</div>
+            </div>
+            <div class="gallery-info">
+              <div class="g-name">${showColors ? colorPip(c.color) : ''}${c.name || c.cardNumber}</div>
+              <div class="g-meta">${c.set || ''}</div>
+              <div class="g-price">${c.price ? '$' + parseFloat(c.price).toFixed(2) : '—'}</div>
+              ${decks.length ? `<div style="font-size:10px;color:var(--text-dim);font-style:italic;margin-top:2px">${decks.join(', ')}</div>` : ''}
+            </div>
+          </div>`;
+        }
+        html += `</div>`;
+      } else {
+        html += `<table class="card-table" style="margin-bottom:8px">
+          <thead><tr><th>Name</th><th>Set</th><th>Type</th><th>Price</th><th>Qty</th>${showColors ? '<th>Color</th>' : ''}<th>In Decks</th></tr></thead><tbody>`;
+        for (const c of typeCards) {
+          const decks = deckMap[c.cardNumber] || [];
+          html += `<tr>
+            <td class="card-name-cell">${showColors ? colorPip(c.color) : ''}${c.name || c.cardNumber}</td>
+            <td><span class="card-set-badge">${c.set || '—'}</span></td>
+            <td style="color:var(--text-secondary);font-size:13px">${c.type || '—'}</td>
+            <td class="price-cell">${c.price ? '$' + parseFloat(c.price).toFixed(2) : '—'}</td>
+            <td><span class="qty-badge">${c.quantity}</span></td>
+            ${showColors ? `<td>${showColors ? colorPip(c.color) : ''}${c.color||'—'}</td>` : ''}
+            <td>${decks.length ? decks.map(d => `<span class="deck-tag">${d}</span>`).join(' ') : '<span style="color:var(--text-dim);font-size:12px">—</span>'}</td>
+          </tr>`;
+        }
+        html += `</tbody></table>`;
+      }
+    }
+    html += `</div>`;
+  }
+  content.innerHTML = html;
+}
+
+// ── ADD CARDS ──
+let addRowCount = 0;
+function openAddCardsModal() {
+  document.getElementById('addRowsContainer').innerHTML = '';
+  addRowCount = 0;
+  addInputRow();
+  openModal('addCardsModal');
+}
+
+function addInputRow() {
+  const id = addRowCount++;
+  const container = document.getElementById('addRowsContainer');
+  const deckOptions = state.decks.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  const div = document.createElement('div');
+  div.className = 'add-row';
+  div.id = 'addRow_' + id;
+  div.innerHTML = `
+    <input type="text" placeholder="e.g. OGN-001" id="cardNum_${id}" onkeydown="rowKeydown(event,${id})">
+    <input type="number" min="1" value="1" id="cardQty_${id}" onkeydown="rowKeydown(event,${id})">
+    <input type="number" min="0" step="0.01" placeholder="$0.00" id="cardPrice_${id}" style="padding:9px 8px;text-align:right;" onkeydown="rowKeydown(event,${id})">
+    <div class="add-row-deck">
+      <label class="deck-check-row">
+        <input type="checkbox" id="inDeck_${id}" onchange="toggleDeckSelect(${id})">
+        <span>Add to a deck</span>
+      </label>
+      <div class="deck-select-wrap" id="deckSelectWrap_${id}">
+        <select id="deckSel_${id}" style="width:100%;margin-top:4px">${deckOptions || '<option value="">No decks yet</option>'}</select>
+      </div>
+    </div>
+    <button class="add-row-remove" onclick="removeRow(${id})" title="Remove row">✕</button>`;
+  container.appendChild(div);
+  div.querySelector('input[type=text]').focus();
+}
+
+function rowKeydown(e, id) {
+  if (e.key === 'Enter') addInputRow();
+}
+function toggleDeckSelect(id) {
+  const checked = document.getElementById('inDeck_' + id).checked;
+  document.getElementById('deckSelectWrap_' + id).classList.toggle('visible', checked);
+}
+function removeRow(id) {
+  const el = document.getElementById('addRow_' + id);
+  if (el) el.remove();
+}
+
+async function submitAddCards() {
+  const rows = document.querySelectorAll('[id^="addRow_"]');
+  const spinner = document.getElementById('addSpinner');
+  spinner.style.display = 'inline-block';
+
+  let added = 0, errors = [];
+  for (const row of rows) {
+    const idStr = row.id.replace('addRow_', '');
+    const cardNumber = document.getElementById('cardNum_' + idStr)?.value.trim().toUpperCase();
+    const quantity = parseInt(document.getElementById('cardQty_' + idStr)?.value) || 1;
+    const inDeck = document.getElementById('inDeck_' + idStr)?.checked;
+    const deckId = inDeck ? document.getElementById('deckSel_' + idStr)?.value : null;
+
+    if (!cardNumber) continue;
+
+    // Look up from local card DB
+    const dbCard = getCardFromDb(cardNumber);
+    const manualPrice = parseFloat(document.getElementById('cardPrice_' + idStr)?.value) || 0;
+    let cardData = dbCard
+      ? { ...dbCard, quantity, price: manualPrice }
+      : { cardNumber, name: cardNumber, set: '', type: '', color: '', price: manualPrice, imageUrl: `https://images.scrydex.com/riftbound/${cardNumber}/small`, quantity };
+
+    const result = await apiCall('upsertCard', cardData);
+    if (result) {
+      added++;
+      const existing = state.collection.find(c => c.cardNumber === cardNumber);
+      if (existing) existing.quantity = parseInt(existing.quantity) + quantity;
+      else state.collection.push(cardData);
+
+      if (deckId) {
+        await apiCall('assignCardToDeck', { deckId, cardNumber, quantity });
+        const existing2 = state.deckCards.find(dc => dc.deckId === deckId && dc.cardNumber === cardNumber);
+        if (existing2) existing2.quantity = quantity;
+        else state.deckCards.push({ deckId, cardNumber, quantity });
+      }
+    } else {
+      errors.push(cardNumber);
+    }
+  }
+
+  spinner.style.display = 'none';
+  closeModal('addCardsModal');
+  renderDecks();
+  renderCollection();
+  if (errors.length) notify(`Added ${added} cards. Errors: ${errors.join(', ')}`, 'error');
+  else notify(`Added ${added} card${added !== 1 ? 's' : ''} to your collection!`, 'success');
+}
+
+function normalizeColor(raw) {
+  const lower = (raw || '').toLowerCase();
+  if (lower.includes('red') || lower.includes('noxus') || lower.includes('demacia')) return 'Red';
+  if (lower.includes('orange')) return 'Orange';
+  if (lower.includes('yellow') || lower.includes('bandle')) return 'Yellow';
+  if (lower.includes('green') || lower.includes('freljord') || lower.includes('ionia')) return 'Green';
+  if (lower.includes('blue') || lower.includes('piltover') || lower.includes('zaun')) return 'Blue';
+  if (lower.includes('purple') || lower.includes('shadow') || lower.includes('void')) return 'Purple';
+  if (lower.includes('colorless') || lower.includes('targon') || lower.includes('bilgewater')) return 'Colorless';
+  if (raw) return raw; // pass through unknown values as-is
+  return 'Colorless';
+}
+
+// ── MODAL HELPERS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ── NOTIFICATIONS ──
+function notify(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'notif ' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── SHEET URL init ──
+function updateConnectionStatus() {
+  const el = document.getElementById('connectionStatus');
+  const input = document.getElementById('sheetUrlInput');
+  const collSub = document.getElementById('collectionSubtitle');
+  const deckSub = document.getElementById('deckSubtitle');
+  if (sheetUrl) {
+    if (input) input.value = sheetUrl;
+    if (el) { el.style.color = 'var(--gold)'; el.textContent = '✓ Connected'; }
+  } else {
+    if (el) { el.style.color = 'var(--text-dim)'; el.textContent = 'Not connected — data will not be saved until you connect a sheet.'; }
+    if (collSub) collSub.textContent = 'Connect a Google Sheet via Settings to get started';
+    if (deckSub) deckSub.textContent = 'Connect a Google Sheet via Settings to get started';
+  }
+}
+document.addEventListener('DOMContentLoaded', updateConnectionStatus);
+</script>
+</body>
+</html>
