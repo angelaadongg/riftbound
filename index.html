@@ -1544,7 +1544,9 @@ function colorPip(color) {
 
 function cardImageUrl(card) {
   if (card.imageUrl) return card.imageUrl;
-  if (card.cardNumber) return `https://images.scrydex.com/riftbound/${card.cardNumber}/small`;
+  // Try cardDb as a last resort
+  const dbCard = getCardFromDb(card.cardNumber);
+  if (dbCard?.imageUrl) return dbCard.imageUrl;
   return '';
 }
 
@@ -1626,7 +1628,15 @@ function renderDeckView() {
 
   const enriched = deckCards.map(dc => {
     const col = collectionMap[dc.cardNumber] || {};
-    return { ...dc, ...col, cardNumber: dc.cardNumber, deckQty: parseInt(dc.quantity || 0), ownedQty: parseInt(col.quantity || 0) };
+    // Fall back to cardDb for name/type/color/image when not in collection
+    const dbCard = getCardFromDb(dc.cardNumber) || {};
+    return {
+      ...dbCard,  // base: cardDb data (name, type, color, imageUrl)
+      ...col,     // override with collection data if present
+      cardNumber: dc.cardNumber,
+      deckQty: parseInt(dc.quantity || 0),
+      ownedQty: parseInt(col.quantity || 0)
+    };
   });
 
   const totalCards = enriched.reduce((s, c) => s + c.deckQty, 0);
@@ -1702,9 +1712,12 @@ function openManageDeckModal(deckId) {
   let tableHtml = `<table class="card-table" style="margin-bottom:16px"><thead><tr><th>Card</th><th>Set</th><th>Qty in Deck</th><th></th></tr></thead><tbody>`;
   for (const dc of deckCards) {
     const col = collectionMap[dc.cardNumber] || {};
+    const dbCard = getCardFromDb(dc.cardNumber) || {};
+    const displayName = col.name && col.name !== dc.cardNumber ? col.name : (dbCard.name || dc.cardNumber);
+    const displaySet = col.set || dbCard.set || '—';
     tableHtml += `<tr>
-      <td>${col.name || dc.cardNumber}</td>
-      <td><span class="card-set-badge">${col.set || '—'}</span></td>
+      <td>${displayName}</td>
+      <td><span class="card-set-badge">${displaySet}</span></td>
       <td><input type="number" min="0" value="${dc.quantity}" style="width:60px;padding:4px 8px;background:var(--surface-3);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);font-family:inherit;text-align:center" data-card="${dc.cardNumber}" onchange="updateDeckCardQty('${dc.cardNumber}', this.value)"></td>
       <td><button class="btn-danger" style="background:none;border:none;cursor:pointer;color:#e74c3c;font-size:16px" onclick="removeCardFromDeck('${dc.cardNumber}')">✕</button></td>
     </tr>`;
@@ -2071,7 +2084,19 @@ function renderCollection() {
   const content = document.getElementById('collectionContent');
   const sub = document.getElementById('collectionSubtitle');
 
-  let cards = state.collection;
+  // Enrich collection cards with cardDb data in case Sheet is missing fields
+  let cards = state.collection.map(c => {
+    const db = getCardFromDb(c.cardNumber) || {};
+    return {
+      ...db,
+      ...c,
+      name: c.name && c.name !== c.cardNumber ? c.name : (db.name || c.cardNumber),
+      type: c.type || db.type || '',
+      color: c.color || db.color || '',
+      imageUrl: c.imageUrl || db.imageUrl || '',
+      set: c.set || db.set || '',
+    };
+  });
   if (search) cards = cards.filter(c => (c.name || '').toLowerCase().includes(search) || (c.cardNumber || '').toLowerCase().includes(search));
   if (filterColor) cards = cards.filter(c => c.color === filterColor);
   if (filterType) cards = cards.filter(c => c.type === filterType);
