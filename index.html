@@ -1390,7 +1390,7 @@ async function preloadCardDb() {
       const r = await fetch(`https://api.riftcodex.com/cards?size=100&page=${page}&sort=collector_number`);
       if (!r.ok) break;
       const data = await r.json();
-      const items = data.items || data.cards || data.data || (Array.isArray(data) ? data : []);
+      const items = Array.isArray(data) ? data : (data.items || data.cards || data.data || []);
       if (!items.length) break;
       allCards.push(...items);
       if (items.length < 100) break;
@@ -1417,17 +1417,25 @@ async function preloadCardDb() {
 }
 
 function normalizeRiftcodexCard(c) {
-  const rid = (c.riftbound_id || c.id || '').toUpperCase();
-  const rawSet = c.set_id || c.set || '';
-  const setStr = typeof rawSet === 'string' ? rawSet : (rawSet?.id || rawSet?.code || '');
+  const rid = (c.riftbound_id || '').toUpperCase();
+  // Riftcodex nests data in classification, set, media objects
+  const classification = c.classification || {};
+  const setObj = c.set || {};
+  const media = c.media || {};
+  const setId = (setObj.set_id || '').toUpperCase();
+  // domain is an array e.g. ["Fury", "Chaos"] — map to our color
+  const domains = Array.isArray(classification.domain) ? classification.domain : [classification.domain || ''];
+  const color = normalizeColor(domains[0] || '');
+  // type + supertype e.g. "Unit" / "Champion"
+  const type = classification.supertype || classification.type || '';
   return {
     cardNumber: rid,
     name: c.name || '',
-    set: setStr.toUpperCase(),
-    type: c.type || c.card_type || '',
-    color: normalizeColor(c.domain || c.faction || c.color || ''),
+    set: setId,
+    type,
+    color,
     price: 0,
-    imageUrl: c.image_url || c.image || (rid ? `https://images.scrydex.com/riftbound/${rid}/small` : '')
+    imageUrl: media.image_url || (rid ? `https://images.scrydex.com/riftbound/${rid}/small` : '')
   };
 }
 
@@ -1921,11 +1929,6 @@ async function createDeckImport() {
       leaderCardNumber = c.cardNumber;
       leaderImage = `https://images.scrydex.com/riftbound/${c.cardNumber}/medium`;
     }
-    const existingCol = state.collection.find(col => col.cardNumber === c.cardNumber);
-    if (!existingCol) {
-      await apiCall('upsertCard', { ...cardData, quantity: c.quantity });
-      state.collection.push({ ...cardData, quantity: c.quantity });
-    }
     await apiCall('assignCardToDeck', { deckId, cardNumber: c.cardNumber, quantity: c.quantity });
     state.deckCards.push({ deckId, cardNumber: c.cardNumber, quantity: c.quantity });
   }
@@ -1942,11 +1945,6 @@ async function createDeckImport() {
       if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('champion') || cardData.type?.toLowerCase().includes('legend'))) {
         leaderCardNumber = cardNumber;
         leaderImage = `https://images.scrydex.com/riftbound/${cardNumber}/medium`;
-      }
-      const existingCol = state.collection.find(col => col.cardNumber === cardNumber);
-      if (!existingCol) {
-        await apiCall('upsertCard', { ...cardData, quantity: c.quantity });
-        state.collection.push({ ...cardData, quantity: c.quantity });
       }
     } else {
       cardNumber = 'NAME:' + c.name.toUpperCase();
@@ -2248,14 +2246,15 @@ async function submitAddCards() {
 
 function normalizeColor(raw) {
   const lower = (raw || '').toLowerCase();
-  if (lower.includes('red') || lower.includes('noxus') || lower.includes('demacia')) return 'Red';
-  if (lower.includes('orange')) return 'Orange';
-  if (lower.includes('yellow') || lower.includes('bandle')) return 'Yellow';
-  if (lower.includes('green') || lower.includes('freljord') || lower.includes('ionia')) return 'Green';
-  if (lower.includes('blue') || lower.includes('piltover') || lower.includes('zaun')) return 'Blue';
-  if (lower.includes('purple') || lower.includes('shadow') || lower.includes('void')) return 'Purple';
-  if (lower.includes('colorless') || lower.includes('targon') || lower.includes('bilgewater')) return 'Colorless';
-  if (raw) return raw; // pass through unknown values as-is
+  // Riftbound domain names
+  if (lower === 'fury' || lower.includes('red') || lower.includes('noxus')) return 'Red';
+  if (lower === 'chaos' || lower.includes('orange')) return 'Orange';
+  if (lower === 'cunning' || lower.includes('yellow') || lower.includes('bandle')) return 'Yellow';
+  if (lower === 'spirit' || lower.includes('green') || lower.includes('ionia') || lower.includes('freljord')) return 'Green';
+  if (lower === 'progress' || lower.includes('blue') || lower.includes('piltover') || lower.includes('zaun')) return 'Blue';
+  if (lower === 'darkness' || lower.includes('purple') || lower.includes('shadow') || lower.includes('void')) return 'Purple';
+  if (lower === 'unity' || lower.includes('colorless') || lower.includes('targon') || lower.includes('bilgewater') || lower.includes('demacia')) return 'Colorless';
+  if (raw) return raw;
   return 'Colorless';
 }
 
@@ -2266,7 +2265,7 @@ document.querySelectorAll('.modal-backdrop').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
 
-//notifications
+// ── NOTIFICATIONS ──
 function notify(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = 'notif ' + type;
