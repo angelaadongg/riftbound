@@ -1206,8 +1206,9 @@ function handleRequest(e) {
   } catch(err) {
     result = { error: err.toString() };
   }
-  return ContentService.createTextOutput(JSON.stringify(result))
+  const output = ContentService.createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
+  return output;
 }
 
 function getSpreadsheet() {
@@ -1243,14 +1244,10 @@ function getAll() {
     }).filter(r => r[headers[0]]);
   };
 
-  const colHeaders = ['cardNumber','name','set','type','color','price','quantity','imageUrl','lastUpdated'];
-  const deckHeaders = ['id','name','leaderCardNumber','leaderImage','description','createdAt'];
-  const dcHeaders = ['deckId','cardNumber','quantity'];
-
   return {
-    collection: toObj(colSh, colHeaders),
-    decks: toObj(deckSh, deckHeaders),
-    deckCards: toObj(dcSh, dcHeaders)
+    collection: toObj(colSh, ['cardNumber','name','set','type','color','price','quantity','imageUrl','lastUpdated']),
+    decks: toObj(deckSh, ['id','name','leaderCardNumber','leaderImage','description','createdAt']),
+    deckCards: toObj(dcSh, ['deckId','cardNumber','quantity'])
   };
 }
 
@@ -1421,10 +1418,12 @@ async function preloadCardDb() {
 
 function normalizeRiftcodexCard(c) {
   const rid = (c.riftbound_id || c.id || '').toUpperCase();
+  const rawSet = c.set_id || c.set || '';
+  const setStr = typeof rawSet === 'string' ? rawSet : (rawSet?.id || rawSet?.code || '');
   return {
     cardNumber: rid,
     name: c.name || '',
-    set: (c.set_id || c.set || '').toUpperCase(),
+    set: setStr.toUpperCase(),
     type: c.type || c.card_type || '',
     color: normalizeColor(c.domain || c.faction || c.color || ''),
     price: 0,
@@ -1452,14 +1451,22 @@ function saveSheetUrl() {
 async function apiCall(action, body = {}) {
   if (!sheetUrl) { notify('Please connect a Google Sheet first', 'error'); return null; }
   body.action = action;
-  const res = await fetch(sheetUrl, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: { 'Content-Type': 'text/plain' }
-  });
-  const data = await res.json();
-  if (data.error) { notify('Error: ' + data.error, 'error'); return null; }
-  return data;
+  try {
+    const res = await fetch(sheetUrl, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'text/plain' },
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    const data = JSON.parse(text);
+    if (data.error) { notify('Error: ' + data.error, 'error'); return null; }
+    return data;
+  } catch(e) {
+    notify('Connection error — check your Apps Script is deployed correctly and set to "Anyone" access', 'error');
+    console.error('apiCall error:', e);
+    return null;
+  }
 }
 
 async function loadData() {
@@ -2259,7 +2266,7 @@ document.querySelectorAll('.modal-backdrop').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
 });
 
-// ── NOTIFICATIONS ──
+//notifications
 function notify(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = 'notif ' + type;
