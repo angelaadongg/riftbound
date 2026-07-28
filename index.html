@@ -1347,7 +1347,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── STATE ──
 let sheetUrl = localStorage.getItem('riftbound_sheet_url') || '';
 let state = { collection: [], decks: [], deckCards: [] };
-let cardDb = {}; // cardNumber -> card object, preloaded from Riftcodex
+let cardDb = {}; // cardNumber (UNL-229) -> card object
+let cardDbByName = {}; // normalized name -> card object
 const CARD_DB_CACHE_KEY = 'riftbound_card_db';
 const CARD_DB_CACHE_TS_KEY = 'riftbound_card_db_ts';
 const CARD_DB_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -1373,8 +1374,10 @@ async function preloadCardDb() {
     const ts = parseInt(localStorage.getItem(CARD_DB_CACHE_TS_KEY) || '0');
     if (Date.now() - ts < CARD_DB_TTL) {
       const cached = localStorage.getItem(CARD_DB_CACHE_KEY);
+      const cachedNames = localStorage.getItem(CARD_DB_CACHE_KEY + '_names');
       if (cached) {
         cardDb = JSON.parse(cached);
+        cardDbByName = cachedNames ? JSON.parse(cachedNames) : {};
         console.log(`Card DB loaded from cache (${Object.keys(cardDb).length} cards)`);
         return;
       }
@@ -1398,51 +1401,68 @@ async function preloadCardDb() {
     } catch(e) { break; }
   }
 
-  // Build lookup map keyed by riftbound_id (e.g. OGN-042)
+  // Build lookup maps: by short card number (UNL-229) and by normalized name
   cardDb = {};
+  cardDbByName = {};
   for (const c of allCards) {
-    const rid = (c.riftbound_id || c.id || '').toUpperCase();
-    if (!rid) continue;
-    cardDb[rid] = normalizeRiftcodexCard(c);
-    // Also index by short form e.g. OGN-42 -> OGN-042
-    const short = rid.replace(/-0+(\d)$/, '-$1');
-    if (short !== rid) cardDb[short] = cardDb[rid];
+    const normalized = normalizeRiftcodexCard(c);
+    if (!normalized.cardNumber) continue;
+    // Skip alternate art / signature duplicates — keep first occurrence
+    if (!cardDb[normalized.cardNumber]) {
+      cardDb[normalized.cardNumber] = normalized;
+    }
+    // Name index: clean_name or name, lowercased
+    const nameKey = (c.metadata?.clean_name || c.name || '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    if (nameKey && !cardDbByName[nameKey]) {
+      cardDbByName[nameKey] = normalized;
+    }
   }
 
   try {
     localStorage.setItem(CARD_DB_CACHE_KEY, JSON.stringify(cardDb));
+    localStorage.setItem(CARD_DB_CACHE_KEY + '_names', JSON.stringify(cardDbByName));
     localStorage.setItem(CARD_DB_CACHE_TS_KEY, Date.now().toString());
   } catch(e) {}
   console.log(`Card DB loaded from API (${Object.keys(cardDb).length} cards)`);
 }
 
 function normalizeRiftcodexCard(c) {
-  const rid = (c.riftbound_id || '').toUpperCase();
-  // Riftcodex nests data in classification, set, media objects
+  // riftbound_id is like "unl-229-219" — we use first two segments as the card key e.g. "UNL-229"
+  const rawId = (c.riftbound_id || '').toUpperCase();
+  const parts = rawId.split('-');
+  // Handle signatures like "UNL-229*-219" — strip the * too
+  const shortId = parts.length >= 2 ? (parts[0] + '-' + parts[1].replace('*','').replace('A','')) : rawId;
   const classification = c.classification || {};
   const setObj = c.set || {};
   const media = c.media || {};
-  const setId = (setObj.set_id || '').toUpperCase();
-  // domain is an array e.g. ["Fury", "Chaos"] — map to our color
+  const setId = (typeof setObj === 'string' ? setObj : (setObj.set_id || '')).toUpperCase();
   const domains = Array.isArray(classification.domain) ? classification.domain : [classification.domain || ''];
   const color = normalizeColor(domains[0] || '');
-  // type + supertype e.g. "Unit" / "Champion"
+  // supertype: Champion, Signature; type: Unit, Spell, Gear, Legend, Battlefield
   const type = classification.supertype || classification.type || '';
   return {
-    cardNumber: rid,
+    cardNumber: shortId,
     name: c.name || '',
     set: setId,
     type,
     color,
     price: 0,
-    imageUrl: media.image_url || (rid ? `https://images.scrydex.com/riftbound/${rid}/small` : '')
+    imageUrl: media.image_url || ''
   };
 }
 
 function getCardFromDb(cardNumber) {
   if (!cardNumber) return null;
-  const key = cardNumber.toUpperCase();
-  return cardDb[key] || null;
+  const upper = cardNumber.toUpperCase().replace('*', '');
+  // Try full key first
+  if (cardDb[upper]) return cardDb[upper];
+  // Strip third segment: "UNL-229-219" -> "UNL-229"
+  const parts = upper.split('-');
+  if (parts.length >= 3) {
+    const short = parts[0] + '-' + parts[1];
+    if (cardDb[short]) return cardDb[short];
+  }
+  return null;
 }
 
 function saveSheetUrl() {
@@ -1844,17 +1864,15 @@ async function createDeck() {
 }
 
 function lookupCardByName(name) {
-  // Search local cardDb by name (exact then fuzzy)
+  const cleanKey = name.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  // Exact clean_name match
+  if (cardDbByName[cleanKey]) return cardDbByName[cleanKey];
+  // Starts-with match on name keys
+  for (const [key, card] of Object.entries(cardDbByName)) {
+    if (key.startsWith(cleanKey) || cleanKey.startsWith(key)) return card;
+  }
+  // Fallback: contains match on card names
   const lower = name.toLowerCase().trim();
-  // Exact match
-  for (const card of Object.values(cardDb)) {
-    if (card.name.toLowerCase() === lower) return card;
-  }
-  // Starts-with match
-  for (const card of Object.values(cardDb)) {
-    if (card.name.toLowerCase().startsWith(lower)) return card;
-  }
-  // Contains match
   for (const card of Object.values(cardDb)) {
     if (card.name.toLowerCase().includes(lower)) return card;
   }
@@ -1925,7 +1943,7 @@ async function createDeckImport() {
     } catch(e) {}
     if (!cardData) cardData = { cardNumber: c.cardNumber, name: c.name, set: '', type: '', color: '', price: 0, imageUrl: '' };
     resolved++;
-    if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('champion') || cardData.type?.toLowerCase().includes('legend'))) {
+    if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('legend') || cardData.type?.toLowerCase() === 'champion')) {
       leaderCardNumber = c.cardNumber;
       leaderImage = `https://images.scrydex.com/riftbound/${c.cardNumber}/medium`;
     }
@@ -1942,7 +1960,7 @@ async function createDeckImport() {
     if (cardData && cardData.cardNumber) {
       cardNumber = cardData.cardNumber;
       resolved++;
-      if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('champion') || cardData.type?.toLowerCase().includes('legend'))) {
+      if (!leaderCardNumber && (cardData.type?.toLowerCase().includes('legend') || cardData.type?.toLowerCase() === 'champion')) {
         leaderCardNumber = cardNumber;
         leaderImage = `https://images.scrydex.com/riftbound/${cardNumber}/medium`;
       }
@@ -2245,15 +2263,22 @@ async function submitAddCards() {
 }
 
 function normalizeColor(raw) {
+  // Actual domain values from Riftcodex API: Fury, Chaos, Calm, Body, Mind, Order, Colorless
   const lower = (raw || '').toLowerCase();
-  // Riftbound domain names
-  if (lower === 'fury' || lower.includes('red') || lower.includes('noxus')) return 'Red';
-  if (lower === 'chaos' || lower.includes('orange')) return 'Orange';
-  if (lower === 'cunning' || lower.includes('yellow') || lower.includes('bandle')) return 'Yellow';
-  if (lower === 'spirit' || lower.includes('green') || lower.includes('ionia') || lower.includes('freljord')) return 'Green';
-  if (lower === 'progress' || lower.includes('blue') || lower.includes('piltover') || lower.includes('zaun')) return 'Blue';
-  if (lower === 'darkness' || lower.includes('purple') || lower.includes('shadow') || lower.includes('void')) return 'Purple';
-  if (lower === 'unity' || lower.includes('colorless') || lower.includes('targon') || lower.includes('bilgewater') || lower.includes('demacia')) return 'Colorless';
+  if (lower === 'fury') return 'Red';
+  if (lower === 'chaos') return 'Purple';
+  if (lower === 'calm') return 'Blue';
+  if (lower === 'body') return 'Green';
+  if (lower === 'mind') return 'Yellow';
+  if (lower === 'order') return 'Orange';
+  if (lower === 'colorless') return 'Colorless';
+  // Legacy fallbacks
+  if (lower.includes('red')) return 'Red';
+  if (lower.includes('purple') || lower.includes('shadow')) return 'Purple';
+  if (lower.includes('blue')) return 'Blue';
+  if (lower.includes('green')) return 'Green';
+  if (lower.includes('yellow')) return 'Yellow';
+  if (lower.includes('orange')) return 'Orange';
   if (raw) return raw;
   return 'Colorless';
 }
