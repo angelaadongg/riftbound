@@ -1388,7 +1388,8 @@ async function preloadCardDb() {
   console.log('Fetching card DB from Riftcodex...');
   const allCards = [];
   let page = 1;
-  while (true) {
+  let totalPages = 1;
+  while (page <= totalPages) {
     try {
       const r = await fetch(`https://api.riftcodex.com/cards?size=100&page=${page}&sort=collector_number`);
       if (!r.ok) break;
@@ -1396,9 +1397,12 @@ async function preloadCardDb() {
       const items = Array.isArray(data) ? data : (data.items || data.cards || data.data || []);
       if (!items.length) break;
       allCards.push(...items);
-      if (items.length < 100) break;
+      // API tells us total pages
+      if (data.pages) totalPages = data.pages;
+      else if (data.total && data.size) totalPages = Math.ceil(data.total / data.size);
+      console.log(`Fetched page ${page}/${totalPages} (${allCards.length} cards so far)`);
       page++;
-    } catch(e) { break; }
+    } catch(e) { console.error('Riftcodex fetch error:', e); break; }
   }
 
   // Build lookup maps: by short card number (UNL-229) and by normalized name
@@ -1423,15 +1427,20 @@ async function preloadCardDb() {
     localStorage.setItem(CARD_DB_CACHE_KEY + '_names', JSON.stringify(cardDbByName));
     localStorage.setItem(CARD_DB_CACHE_TS_KEY, Date.now().toString());
   } catch(e) {}
-  console.log(`Card DB loaded from API (${Object.keys(cardDb).length} cards)`);
+  console.log(`Card DB loaded from API (${Object.keys(cardDb).length} card entries, ${Object.keys(cardDbByName).length} name entries)`);
+  // Debug: log a sample entry
+  const sampleKey = Object.keys(cardDb)[0];
+  if (sampleKey) console.log('Sample card entry:', sampleKey, cardDb[sampleKey]);
 }
 
 function normalizeRiftcodexCard(c) {
   // riftbound_id is like "unl-229-219" — we use first two segments as the card key e.g. "UNL-229"
   const rawId = (c.riftbound_id || '').toUpperCase();
   const parts = rawId.split('-');
-  // Handle signatures like "UNL-229*-219" — strip the * too
-  const shortId = parts.length >= 2 ? (parts[0] + '-' + parts[1].replace('*','').replace('A','')) : rawId;
+  // Strip * (signature) and trailing 'A' (alternate art) from the number segment
+  // e.g. "UNL-229*-219" -> "UNL-229", "UNL-116A-219" -> "UNL-116"
+  const numPart = parts.length >= 2 ? parts[1].replace('*', '').replace(/A$/, '') : '';
+  const shortId = numPart ? (parts[0] + '-' + numPart) : rawId;
   const classification = c.classification || {};
   const setObj = c.set || {};
   const media = c.media || {};
@@ -2230,11 +2239,17 @@ async function submitAddCards() {
     if (!cardNumber) continue;
 
     // Look up from local card DB
-    const dbCard = getCardFromDb(cardNumber);
+    let dbCard = getCardFromDb(cardNumber);
+    if (!dbCard) {
+      // cardDb might use a different key format — try stripping leading zeros
+      const normalized = cardNumber.replace(/-0+(\d)/, '-$1');
+      dbCard = cardDb[normalized] || null;
+    }
     const manualPrice = parseFloat(document.getElementById('cardPrice_' + idStr)?.value) || 0;
+    if (!dbCard) console.warn('Card not found in DB:', cardNumber, '— DB has', Object.keys(cardDb).length, 'entries. Sample keys:', Object.keys(cardDb).slice(0, 5));
     let cardData = dbCard
       ? { ...dbCard, quantity, price: manualPrice }
-      : { cardNumber, name: cardNumber, set: '', type: '', color: '', price: manualPrice, imageUrl: `https://images.scrydex.com/riftbound/${cardNumber}/small`, quantity };
+      : { cardNumber, name: cardNumber, set: '', type: '', color: '', price: manualPrice, imageUrl: '', quantity };
 
     const result = await apiCall('upsertCard', cardData);
     if (result) {
